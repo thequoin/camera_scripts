@@ -1,0 +1,72 @@
+#!/bin/bash
+
+# Input: CSV of file paths and dates (/abs/file/path.jpg,2023-03-31 10:53:22)
+# Output: CSV of unique dates with sunrise and sunset times for the provided location and timezone
+
+# Default location of Ross, Tasmania
+latitude="-42.027962"
+longitude="147.492865"
+
+# Default Brisbane timezone used because cameras don't implement daylight savings calendars
+cameratimezone="Australia/Brisbane"
+target=""
+
+# Check if required tools are installed
+if ! command -v curl >/dev/null; then
+  echo "Error: curl is not installed. Please install it and try again."
+  exit 1
+fi
+
+if ! command -v jq >/dev/null; then
+  echo "Error: jq is not installed. Please install it and try again."
+  exit 1
+fi
+
+# Function to display script usage
+usage() {
+  echo "Usage: STDIN | $0 [--lat <latitude>] [--lon <longitude>] [--camtz <cameratimezone>] | STDOUT"
+}
+
+# Parse command-line arguments
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --help)
+      usage
+      exit 0
+      ;;
+    --lat)
+      shift
+      latitude="$1"
+      ;;
+    --lon)
+      shift
+      longitude="$1"
+      ;;
+    --camtz)
+      cameratimezone="$1"
+      ;;
+  esac
+  shift
+done
+
+declare -A unique_dates
+
+while IFS=, read -r file timestamp; do
+  date=$(echo "$timestamp" | cut -d " " -f1)
+  unique_dates["$date"]=1
+done
+
+for date in "${!unique_dates[@]}"; do
+  # API request URL
+  api_url="https://api.sunrise-sunset.org/json?lat=$latitude&lng=$longitude&date=$date&tzid=$cameratimezone"
+
+  # Make the API request and store the response
+  response=$(curl -s "$api_url")
+
+  # Parse the JSON response to get sunrise and sunset times
+  sunrise=$(echo "$response" | jq -r '.results.sunrise')
+  sunset=$(echo "$response" | jq -r '.results.sunset')
+
+  # Output CSV data for each unique date
+  echo "$date,$sunrise,$sunset"
+done
