@@ -8,15 +8,8 @@ if ! command -v exif >/dev/null; then
     exit 1
 fi
 
-# Function to display script usage
 usage() {
     echo "Usage: $0 <target_directory>"
-}
-
-# Function to find all files with JPG or jpg extensions in the provided directory
-find_files() {
-    local dir="$1"
-    find "$dir" -type f \( -iname "*.jpg" -o -iname "*.jpeg" \)
 }
 
 # Parse command-line arguments
@@ -33,7 +26,6 @@ while [[ $# -gt 0 ]]; do
     shift
 done
 
-# Check if target directory is provided
 if [ -z "$target" ]; then
     usage
     exit 1
