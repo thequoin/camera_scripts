@@ -17,7 +17,7 @@ Scripts are intended for processing hundreds of GB per invocation.
 
 # one-liner
 $> ./photos_exif_date /foo/bar | tee photos.csv | ./sunrise_sunset_times > times.csv && \
-    ./night_photos --photos photos.csv --times times.csv
+    ./night_photos photos.csv times.csv > foo_bar_night_photos.csv
 
 # produce photos.csv first so you can check its progress using `wc -l` in another terminal
 $> ./photos_exif_date /foo/bar > photos.csv
