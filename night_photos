@@ -1,20 +1,16 @@
 #!/bin/bash
 
-# Check if the correct number of arguments is provided
+# When prioritising night activity on fauna cameras, the hour before sunset
+# and the hour after sunrise are important to include
+
 if [ "$#" -ne 2 ]; then
     echo "Usage: $0 photos.csv times.csv"
     exit 1
 fi
 
-# Assign input filenames to variables
 photos_file="$1"
 times_file="$2"
 
-# How many seconds after sunrise and before sunset should be included as "night"
-# Target animal activity in this window is important
-buffer_seconds=3600
-
-# Check if input files exist
 if [ ! -f "$photos_file" ] || [ ! -f "$times_file" ]; then
     echo "Input files not found."
     exit 1
@@ -24,20 +20,28 @@ declare -A sunrise_times
 declare -A sunset_times
 
 while IFS=, read -r date sunrise sunset; do
-    sunrise_times["$date"]=$sunrise
-    sunset_times["$date"]=$sunset
-done < "$times_file"
+    # add 1 hour to sunrise and store as a number
+    sunrise_times["$date"]=$(echo "$sunrise" | awk -F':' '{printf "%02d%02d%02d\n", $1+1, $2, $3}')
+
+    # convert to 24hr time and subtract 1 hour from sunset and store as a number
+    sunset_times["$date"]=$(echo "$sunset" | awk -F':' '{printf "%02d%02d%02d\n", $1+11, $2, $3}')
+done <"$times_file"
 
 while IFS=, read -r file timestamp; do
     date=$(echo "$timestamp" | cut -d " " -f1)
-    sunrise=${sunrise_times[$date]}
-    sunset=${sunset_times[$date]}
-    timestamp_seconds=$(date -d "$timestamp" +%s)
-    dawn_seconds=$(date -d "$date $sunrise + $buffer_seconds seconds" +%s)
-    dusk_seconds=$(date -d "$date $sunset - $buffer_seconds seconds" +%s)
+    dawn=${sunrise_times[$date]}
+    dusk=${sunset_times[$date]}
 
-    # Check if the timestamp is between 00:00:00 and dawn, or between dusk and 23:59:59
-    if [ "$timestamp_seconds" -lt "$dawn_seconds" ] || [ "$timestamp_seconds" -gt "$dusk_seconds" ]; then
-        echo "$file"
+    # convert the 24hr time into a 6 digit number for fast comparison
+    # creating date objects and unixtimestamps is too slow over millions of photos
+    time_num=$(echo "$timestamp" | cut -d " " -f2 | tr -d ":")
+
+    if ! [[ $time_num =~ ^[0-9]+$ && $dawn =~ ^[0-9]+$ && $dusk =~ ^[0-9]+$ ]]; then
+        echo "Bad time data. Time:$time_num dawn:$dawn dusk:$dusk" >&2
+    else
+        # Check if the timestamp is between 00:00:00 and dawn, or between dusk and 23:59:59
+        if [ "$time_num" -lt "$dawn" ] || [ "$time_num" -gt "$dusk" ]; then
+            echo "$file"
+        fi
     fi
-done < "$photos_file"
+done <"$photos_file"

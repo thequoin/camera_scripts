@@ -38,5 +38,9 @@ find "$target" -iname '*.jpg' | while IFS= read -r file; do
             sed 's/\([0-9]\{4\}\):\([0-9]\{2\}\):\([0-9]\{2\}\) \(.*\)/\1-\2-\3 \4/'
 
     )
-    echo "$file,$formatted_date"
+    if [ -n "$date" ]; then
+        echo "$file,$formatted_date"
+    else
+        echo "Timestamp missing or invalid: $file $formatted_date" >&2
+    fi
 done

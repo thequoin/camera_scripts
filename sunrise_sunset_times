@@ -53,7 +53,12 @@ declare -A unique_dates
 
 while IFS=, read -r file timestamp; do
   date=$(echo "$timestamp" | cut -d " " -f1)
-  unique_dates["$date"]=1
+  # corrupt EXIF data will have generated an empty timestamp, so skip those ones
+  if [ -n "$date" ]; then
+    unique_dates["$date"]=1
+  else
+    echo "Timestamp missing or invalid: $file $timestamp" >&2
+  fi
 done
 
 for date in "${!unique_dates[@]}"; do
