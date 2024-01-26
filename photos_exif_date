@@ -33,14 +33,13 @@ fi
 
 find "$target" -iname '*.jpg' | while IFS= read -r file; do
     # Extract the date from the exif timestamp and format as YYYY-MM-DD HH:mm:SS instead of the YYYY:MM:DD HH:mm:SS format recorded on Swift cameras
-    formatted_date=$(
+    date=$(
         exif -m -t=DateTimeOriginal "$file" |
             sed 's/\([0-9]\{4\}\):\([0-9]\{2\}\):\([0-9]\{2\}\) \(.*\)/\1-\2-\3 \4/'
-
     )
     if [ -n "$date" ]; then
-        echo "$file,$formatted_date"
+        echo "$file,$date"
     else
-        echo "Timestamp missing or invalid: $file $formatted_date" >&2
+        echo "Timestamp missing or invalid: $file,$date" >&2
     fi
 done
